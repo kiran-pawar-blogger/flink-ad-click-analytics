@@ -1,0 +1,52 @@
+---
+# Ingress: routes external traffic to Ad UI, Report UI, Click API, and Flink UI
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ad-analytics-ingress
+  namespace: ad-analytics
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # Ad UI — http://localhost/ads
+          - path: /ads(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ad-ui
+                port:
+                  number: 3000
+
+          # Report UI — http://localhost/reports
+          - path: /reports(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: report-ui
+                port:
+                  number: 3002
+
+          # Click API — http://localhost/api/clicks (proxied from Ad UI)
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: click-api
+                port:
+                  number: 3001
+
+          # Flink Web UI — http://localhost/flink
+          - path: /flink(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: flink-jobmanager
+                port:
+                  number: 8081

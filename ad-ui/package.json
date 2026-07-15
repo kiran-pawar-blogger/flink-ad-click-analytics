@@ -1,0 +1,14 @@
+{
+  "name": "ad-ui",
+  "version": "1.0.0",
+  "description": "Demo website showing banner ads — click events sent to Kafka via click-api",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "morgan": "^1.10.0",
+    "helmet": "^7.1.0"
+  }
+}

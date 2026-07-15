@@ -1,0 +1,96 @@
+# =============================================================================
+# .gitignore for the Ad Click Analytics project
+# Stack: Java/Maven (Flink), Node.js (Click API, Ad UI, Report UI), Kubernetes
+# =============================================================================
+
+# ── Node.js ──────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# Keep lock files — they pin exact versions for reproducible builds
+# package-lock.json  <-- intentionally tracked
+# yarn.lock          <-- intentionally tracked
+
+# ── Maven / Java ─────────────────────────────────────────────────────────────
+flink-job/target/
+flink-job/dependency-reduced-pom.xml
+
+# Maven wrapper (if added later)
+.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Temp Dockerfiles written at runtime by deploy scripts
+/tmp/Dockerfile.*
+
+# ── Kubernetes / kind ─────────────────────────────────────────────────────────
+# kind config files written to TEMP at runtime — not project files
+kubeconfig
+*.kubeconfig
+
+# ── Flink checkpoints & savepoints ───────────────────────────────────────────
+flink-checkpoints/
+flink-savepoints/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+
+# ── Environment / secrets ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# ── OS artefacts ─────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ── Editor / IDE ─────────────────────────────────────────────────────────────
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/extensions.json
+!.vscode/extensions.json.recommended   # share recommended extensions if present
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+
+# ── Test runner ───────────────────────────────────────────────────────────────
+# Playwright browser binaries are downloaded per-machine, not committed
+test-runner/node_modules/
+
+# Playwright test artefacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+*.tar
+*.tar.gz
+*.zip

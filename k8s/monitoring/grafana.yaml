@@ -1,0 +1,220 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: ad-analytics
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus:9090
+        access: proxy
+        isDefault: true
+        editable: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: ad-analytics
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: 'Ad Analytics'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-ad-analytics
+  namespace: ad-analytics
+data:
+  ad-analytics.json: |
+    {
+      "title": "Ad Analytics — System Health",
+      "uid": "ad-analytics-health",
+      "tags": ["ad-analytics"],
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "refresh": "10s",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Click Events Received (total)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "targets": [{"expr": "sum(click_api_clicks_received_total)", "legendFormat": "Clicks"}],
+          "options": {"colorMode": "background", "graphMode": "area"}
+        },
+        {
+          "id": 2,
+          "title": "Click Events Published to Kafka (total)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [{"expr": "sum(click_api_clicks_published_total)", "legendFormat": "Published"}],
+          "options": {"colorMode": "background", "graphMode": "area"}
+        },
+        {
+          "id": 3,
+          "title": "Click API Errors",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "targets": [{"expr": "sum(click_api_errors_total)", "legendFormat": "Errors"}],
+          "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green","value": null},{"color": "red","value": 1}]}}},
+          "options": {"colorMode": "background"}
+        },
+        {
+          "id": 4,
+          "title": "Click API — Kafka Publish Latency (p99)",
+          "type": "gauge",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "targets": [{"expr": "histogram_quantile(0.99, sum(rate(click_api_kafka_publish_duration_seconds_bucket[1m])) by (le))", "legendFormat": "p99"}],
+          "fieldConfig": {"defaults": {"unit": "s", "max": 1}}
+        },
+        {
+          "id": 5,
+          "title": "Clicks per Ad per Minute",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "targets": [{"expr": "sum(rate(click_api_clicks_received_total[1m])) by (adId)", "legendFormat": "{{adId}}"}]
+        },
+        {
+          "id": 6,
+          "title": "Click API — Request Rate",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "targets": [{"expr": "rate(click_api_clicks_received_total[1m])", "legendFormat": "Clicks/s"}]
+        },
+        {
+          "id": 7,
+          "title": "Node.js Memory (Click API)",
+          "type": "timeseries",
+          "gridPos": {"h": 6, "w": 8, "x": 0, "y": 12},
+          "targets": [{"expr": "nodejs_heap_size_used_bytes{app='click-api'}", "legendFormat": "Heap Used"}],
+          "fieldConfig": {"defaults": {"unit": "bytes"}}
+        },
+        {
+          "id": 8,
+          "title": "Node.js Event Loop Lag (Report UI)",
+          "type": "timeseries",
+          "gridPos": {"h": 6, "w": 8, "x": 8, "y": 12},
+          "targets": [{"expr": "nodejs_eventloop_lag_seconds{app='report-ui'}", "legendFormat": "Event Loop Lag"}],
+          "fieldConfig": {"defaults": {"unit": "s"}}
+        },
+        {
+          "id": 9,
+          "title": "MongoDB Connections",
+          "type": "stat",
+          "gridPos": {"h": 6, "w": 8, "x": 16, "y": 12},
+          "targets": [{"expr": "mongodb_connections{state='current'}", "legendFormat": "Current Connections"}]
+        }
+      ]
+    }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc
+  namespace: ad-analytics
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: ad-analytics
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.2.2
+          ports:
+            - containerPort: 3000
+              name: grafana
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: "admin"
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin123"
+            - name: GF_SERVER_ROOT_URL
+              value: "http://localhost/grafana"
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            - name: GF_ANALYTICS_REPORTING_ENABLED
+              value: "false"
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+          volumeMounts:
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: grafana-dashboards-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: grafana-dashboard-files
+              mountPath: /var/lib/grafana/dashboards
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: grafana-data
+          persistentVolumeClaim:
+            claimName: grafana-pvc
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: grafana-dashboards-provider
+          configMap:
+            name: grafana-dashboards-provider
+        - name: grafana-dashboard-files
+          configMap:
+            name: grafana-dashboard-ad-analytics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: ad-analytics
+  labels:
+    app: grafana
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
