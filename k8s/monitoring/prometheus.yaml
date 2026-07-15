@@ -54,6 +54,8 @@ metadata:
     app: prometheus
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: prometheus
@@ -73,6 +75,8 @@ spec:
             - --web.console.libraries=/etc/prometheus/console_libraries
             - --web.console.templates=/etc/prometheus/consoles
             - --web.enable-lifecycle
+            - --web.external-url=http://localhost/prometheus
+            - --web.route-prefix=/prometheus
           ports:
             - containerPort: 9090
           volumeMounts:
@@ -89,7 +93,7 @@ spec:
               cpu: "500m"
           readinessProbe:
             httpGet:
-              path: /-/ready
+              path: /prometheus/-/ready
               port: 9090
             initialDelaySeconds: 10
             periodSeconds: 5

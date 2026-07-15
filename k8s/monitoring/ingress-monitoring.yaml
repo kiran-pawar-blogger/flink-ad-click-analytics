@@ -1,29 +1,43 @@
 ---
-# Ingress for monitoring tools (Grafana, Prometheus, Flink UI)
+# Ingress for Grafana — http://localhost/grafana
+# No path rewrite: Grafana handles its own sub-path via
+# GF_SERVER_ROOT_URL=http://localhost/grafana and GF_SERVER_SERVE_FROM_SUB_PATH=true
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: monitoring-ingress
+  name: monitoring-ingress-grafana
   namespace: ad-analytics
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          # Grafana — http://localhost/grafana
-          - path: /grafana(/|$)(.*)
+          - path: /grafana(/?.*)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: grafana
                 port:
                   number: 3000
-
-          # Prometheus — http://localhost/prometheus
-          - path: /prometheus(/|$)(.*)
+---
+# Ingress for Prometheus — http://localhost/prometheus
+# No path rewrite: Prometheus serves from /prometheus sub-path via
+# --web.external-url and --web.route-prefix flags
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoring-ingress-prometheus
+  namespace: ad-analytics
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /prometheus(/?.*)
             pathType: ImplementationSpecific
             backend:
               service:

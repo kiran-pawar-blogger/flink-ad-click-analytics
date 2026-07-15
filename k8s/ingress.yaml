@@ -33,6 +33,15 @@ spec:
                 port:
                   number: 3002
 
+          # Flink Web UI — http://localhost/flink/
+          - path: /flink(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: flink-jobmanager
+                port:
+                  number: 8081
+
           # Click API — http://localhost/api/clicks (proxied from Ad UI)
           - path: /api(/|$)(.*)
             pathType: ImplementationSpecific
@@ -41,12 +50,3 @@ spec:
                 name: click-api
                 port:
                   number: 3001
-
-          # Flink Web UI — http://localhost/flink
-          - path: /flink(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: flink-jobmanager
-                port:
-                  number: 8081
